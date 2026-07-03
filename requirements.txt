@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+icalendar
+recurring-ical-events
+httpx
+apscheduler
+jinja2
+python-multipart
+pydantic
+tzdata

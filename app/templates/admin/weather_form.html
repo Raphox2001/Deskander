@@ -1,0 +1,59 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Wetter-Einstellungen</h2>
+
+<div class="form">
+  <label>Ort suchen
+    <input type="text" id="place-search" placeholder="z.B. Muenchen">
+  </label>
+  <button type="button" id="place-search-button">Suchen</button>
+  <ul id="place-results" class="place-results"></ul>
+</div>
+
+<form method="post" class="form" id="weather-form">
+  <label>Anzeigename
+    <input type="text" name="place_name" id="place_name" required value="{{ weather.place_name }}">
+  </label>
+  <label>Breitengrad
+    <input type="number" step="0.0001" name="latitude" id="latitude" required value="{{ weather.latitude }}">
+  </label>
+  <label>Längengrad
+    <input type="number" step="0.0001" name="longitude" id="longitude" required value="{{ weather.longitude }}">
+  </label>
+  <label>Aktualisierungsintervall (Minuten)
+    <input type="number" name="refresh_minutes" min="1" required value="{{ weather.refresh_minutes }}">
+  </label>
+  <div class="form-actions">
+    <button type="submit">Speichern</button>
+    <a href="/admin">Abbrechen</a>
+  </div>
+</form>
+
+<script>
+document.getElementById("place-search-button").addEventListener("click", async () => {
+  const query = document.getElementById("place-search").value;
+  const resultsEl = document.getElementById("place-results");
+  resultsEl.innerHTML = "";
+  if (!query.trim()) return;
+
+  const res = await fetch(`/admin/api/search-place?q=${encodeURIComponent(query)}`);
+  const places = await res.json();
+  for (const place of places) {
+    const li = document.createElement("li");
+    const label = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = `${label} (${place.latitude}, ${place.longitude})`;
+    button.addEventListener("click", () => {
+      document.getElementById("place_name").value = place.name;
+      document.getElementById("latitude").value = place.latitude;
+      document.getElementById("longitude").value = place.longitude;
+      resultsEl.innerHTML = "";
+    });
+    li.appendChild(button);
+    resultsEl.appendChild(li);
+  }
+});
+</script>
+{% endblock %}

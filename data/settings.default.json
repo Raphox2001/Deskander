@@ -1,0 +1,16 @@
+{
+  "calendar_refresh_minutes": 15,
+  "weather": {
+    "latitude": 52.52,
+    "longitude": 13.405,
+    "place_name": "Berlin",
+    "refresh_minutes": 20,
+    "units": "metric"
+  },
+  "display": {
+    "calendar_weeks_shown": 4,
+    "agenda_days_ahead": 1,
+    "timezone": "Europe/Berlin"
+  },
+  "calendar_sources": []
+}

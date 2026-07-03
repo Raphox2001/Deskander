@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Anzeige-Einstellungen</h2>
+
+<form method="post" class="form">
+  <label>Anzahl Wochen im Kalender
+    <input type="number" name="calendar_weeks_shown" min="1" max="12" required value="{{ display.calendar_weeks_shown }}">
+  </label>
+  <label>Agenda: Tage im Voraus (1 = nur heute)
+    <input type="number" name="agenda_days_ahead" min="1" max="14" required value="{{ display.agenda_days_ahead }}">
+  </label>
+  <label>Zeitzone (IANA, z.B. Europe/Berlin)
+    <input type="text" name="timezone" required value="{{ display.timezone }}">
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" name="show_week_numbers" {% if display.show_week_numbers %}checked{% endif %}>
+    Kalenderwochen-Nummern anzeigen
+  </label>
+  <div class="form-actions">
+    <button type="submit">Speichern</button>
+    <a href="/admin">Abbrechen</a>
+  </div>
+</form>
+{% endblock %}

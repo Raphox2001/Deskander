@@ -1,0 +1,279 @@
+:root {
+  --bg: #000000;
+  --fg: #d0d0d0;
+  --fg-dim: #6f6f6f;
+  --accent: #6fa8dc;
+  --today-bg: #1c2a38;
+  --font-scale: clamp(14px, 1.4vw, 22px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--font-scale);
+  overflow: hidden;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto 1fr;
+  gap: 1.2vh 1.5vw;
+  width: 100%;
+  height: 100%;
+  padding: 2vh 2vw;
+}
+
+.panel h2 {
+  margin: 0 0 0.5em 0;
+  font-weight: 300;
+  font-size: 1.3em;
+  color: var(--fg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Clock: top-left */
+.clock {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* Today's agenda timeline: full width, own row */
+.agenda {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+}
+
+.datetime {
+  margin-bottom: 0.6em;
+}
+
+.current-date {
+  font-size: 1em;
+  color: var(--fg);
+}
+
+.current-time {
+  font-size: 3em;
+  font-weight: 200;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.current-time .seconds {
+  font-size: 0.4em;
+  color: var(--fg-dim);
+  vertical-align: top;
+}
+
+.agenda-empty {
+  color: var(--fg-dim);
+  font-style: italic;
+  margin: 0;
+}
+
+.allday-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-bottom: 0.5em;
+}
+
+.allday-chip {
+  font-size: 0.6em;
+  padding: 0.2em 0.6em;
+  border-radius: 1em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.timeline-wrap {
+  position: relative;
+}
+
+.timeline-hours {
+  position: relative;
+  height: 1em;
+  font-size: 0.55em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-hours .hour-label {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.timeline-track {
+  position: relative;
+  margin-top: 0.1em;
+}
+
+/* Fine grey lines behind the blocks: full-height hour ticks + finer quarter ticks. */
+.timeline-hour-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #333;
+  z-index: 0;
+}
+
+.timeline-quarter-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #1a1a1a;
+  z-index: 0;
+}
+
+.timeline-event {
+  position: absolute;
+  border-radius: 0.25em;
+  font-size: 0.62em;
+  line-height: 1;
+  padding: 0.35em 0.5em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #fff;
+  z-index: 2;
+}
+
+/* Weather: top-right */
+.weather {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+.weather-current {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.4em;
+  font-size: 1.8em;
+}
+
+.weather-current .place {
+  font-size: 0.5em;
+  color: var(--fg-dim);
+  align-self: center;
+}
+
+.weather-forecast {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1em;
+  margin-top: 0.6em;
+  font-size: 0.7em;
+  color: var(--fg-dim);
+}
+
+.weather-forecast .day {
+  text-align: center;
+}
+
+.weather-forecast .day-label {
+  text-transform: uppercase;
+  font-size: 0.85em;
+}
+
+/* Monthly calendar: full width, main area */
+.calendar {
+  grid-column: 1 / span 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  font-size: 0.75em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid #222;
+}
+
+.calendar-weekdays.with-weeknum {
+  grid-template-columns: 3em repeat(7, 1fr);
+}
+
+.calendar-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  background: #111;
+  min-height: 0;
+}
+
+.calendar-grid.with-weeknum {
+  grid-template-columns: 3em repeat(7, 1fr);
+}
+
+.calendar-weeknum {
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6em;
+  color: var(--fg-dim);
+}
+
+.calendar-day {
+  background: var(--bg);
+  padding: 0.3em;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.calendar-day.today {
+  background: var(--today-bg);
+}
+
+.calendar-day.other-month {
+  opacity: 0.45;
+}
+
+.calendar-day .day-number {
+  font-size: 0.8em;
+  color: var(--fg-dim);
+  margin-bottom: 0.2em;
+}
+
+.calendar-day .event {
+  font-size: 0.68em;
+  line-height: 1.3;
+  padding: 0.05em 0.3em;
+  margin-bottom: 0.15em;
+  border-radius: 0.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-bar {
+  position: fixed;
+  bottom: 0.3vh;
+  right: 0.6vw;
+  font-size: 0.55em;
+  color: var(--fg-dim);
+}

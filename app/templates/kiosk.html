@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/static/css/kiosk.css">
+</head>
+<body>
+  <div class="dashboard">
+    <section class="panel clock">
+      <div class="datetime">
+        <div id="current-date" class="current-date"></div>
+        <div id="current-time" class="current-time"></div>
+      </div>
+    </section>
+
+    <section class="panel weather">
+      <div id="weather-current" class="weather-current"></div>
+      <div id="weather-forecast" class="weather-forecast"></div>
+    </section>
+
+    <section class="panel agenda">
+      <h2 id="agenda-date">Aktuelle Termine</h2>
+      <div id="allday-row" class="allday-row"></div>
+      <div class="timeline-wrap">
+        <div id="timeline-hours" class="timeline-hours"></div>
+        <div id="timeline-track" class="timeline-track"></div>
+      </div>
+      <p id="timeline-empty" class="agenda-empty"></p>
+    </section>
+
+    <section class="panel calendar">
+      <div id="calendar-weekdays" class="calendar-weekdays"></div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+  </div>
+
+  <div id="status-bar" class="status-bar"></div>
+
+  <script src="/static/js/kiosk.js"></script>
+</body>
+</html>
