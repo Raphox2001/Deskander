@@ -262,12 +262,22 @@ html, body {
 .calendar-day .event {
   font-size: 0.68em;
   line-height: 1.3;
-  padding: 0.05em 0.3em;
   margin-bottom: 0.15em;
-  border-radius: 0.2em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Timed events: plain colored text, no block. */
+.calendar-day .event.timed {
+  padding: 0.05em 0;
+}
+
+/* All-day events: solid colored block with white text. */
+.calendar-day .event.all-day {
+  padding: 0.05em 0.3em;
+  border-radius: 0.2em;
+  color: #fff;
 }
 
 .status-bar {

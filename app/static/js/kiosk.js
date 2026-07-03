@@ -268,11 +268,16 @@ function renderCalendar(weeks, showWeekNumbers) {
 
       for (const event of day.events) {
         const evEl = document.createElement("div");
-        evEl.className = "event";
-        evEl.style.background = event.color || "#333";
-        evEl.textContent = event.all_day
-          ? event.title
-          : `${formatTime(event.start)} ${event.title}`;
+        const color = event.color || "#6fa8dc";
+        if (event.all_day) {
+          evEl.className = "event all-day";
+          evEl.style.background = color;
+          evEl.textContent = event.title;
+        } else {
+          evEl.className = "event timed";
+          evEl.style.color = color;
+          evEl.textContent = `${formatTime(event.start)} ${event.title}`;
+        }
         dayEl.appendChild(evEl);
       }
 
