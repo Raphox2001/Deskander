@@ -2,6 +2,10 @@
 
 Eigenes Dashboard für einen Raspberry Pi mit angeschlossenem Bildschirm - gedacht als Ersatz für MagicMirror. Zeigt Uhrzeit/Datum, eine Wettervorhersage, eine horizontale Zeitleiste mit den heutigen Terminen und einen Monatskalender über mehrere Wochen. Alle Kalenderquellen, der Wetter-Ort und die Anzeige-Einstellungen werden über ein Web-Admin-GUI im selben Netzwerk konfiguriert - ohne Code-Änderungen und ohne Tastatur/Maus am Pi.
 
+![Deskander Dashboard mit mehreren Beispielkalendern](docs/screenshot.png)
+
+*(Beispieldaten - eigene Kalenderquellen und Farben werden im Admin-GUI eingerichtet.)*
+
 ## Features
 
 - **Kalender**: mehrere iCal-Quellen gleichzeitig, jede mit eigener Farbe, inkl. wiederkehrender Termine, mit Start- **und** Endzeit.
