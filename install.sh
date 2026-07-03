@@ -26,6 +26,10 @@ sudo systemctl enable --now $SERVICE_NAME
 echo "==> Kiosk script"
 chmod +x "$PROJECT_DIR/deploy/kiosk.sh"
 
+echo "==> Chromium policy (disables translate bar / password manager prompts)"
+sudo mkdir -p /etc/chromium/policies/managed
+sudo cp "$PROJECT_DIR/deploy/chromium-policy.json" /etc/chromium/policies/managed/deskander.json
+
 AUTOSTART_LINE="$PROJECT_DIR/deploy/kiosk.sh &"
 if [ -d "$HOME/.config/labwc" ]; then
   touch "$HOME/.config/labwc/autostart"
