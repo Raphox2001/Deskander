@@ -116,7 +116,7 @@ html, body {
 
 .timeline-track {
   position: relative;
-  margin-top: 0.1em;
+  margin-top: 0.6em;
 }
 
 /* Fine grey lines behind the blocks: full-height hour ticks + finer quarter ticks. */
@@ -202,6 +202,7 @@ html, body {
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
   color: var(--fg-dim);
   text-transform: uppercase;
   font-size: 0.75em;
@@ -209,8 +210,16 @@ html, body {
   border-bottom: 1px solid #333;
 }
 
+/* Match the day tiles' own padding so the weekday label lines up with the
+   day number/events below it instead of sitting to the left of them.
+   rem (not em) so it resolves the same regardless of this row's own
+   (smaller) font-size - matching .calendar-day's un-scaled 0.3em padding. */
+.calendar-weekdays > div {
+  padding-left: 0.3rem;
+}
+
 .calendar-weekdays.with-weeknum {
-  grid-template-columns: 3em repeat(7, 1fr);
+  grid-template-columns: 3rem repeat(7, 1fr);
 }
 
 .calendar-grid {
@@ -224,7 +233,7 @@ html, body {
 }
 
 .calendar-grid.with-weeknum {
-  grid-template-columns: 3em repeat(7, 1fr);
+  grid-template-columns: 3rem repeat(7, 1fr);
 }
 
 .calendar-weeknum {
