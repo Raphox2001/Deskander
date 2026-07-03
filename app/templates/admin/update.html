@@ -1,0 +1,88 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Update</h2>
+
+<div class="card">
+  <p id="update-status">Prüfe...</p>
+  <div id="update-details" style="display:none">
+    <p>Installiert: <code id="current-commit"></code></p>
+    <p id="remote-info" style="display:none">Verfügbar: <code id="remote-commit"></code></p>
+  </div>
+  <div class="form-actions">
+    <button type="button" id="check-button">Nach Updates suchen</button>
+    <button type="button" id="apply-button" style="display:none">Jetzt aktualisieren</button>
+  </div>
+</div>
+
+<script>
+const statusEl = document.getElementById("update-status");
+const detailsEl = document.getElementById("update-details");
+const currentEl = document.getElementById("current-commit");
+const remoteInfoEl = document.getElementById("remote-info");
+const remoteEl = document.getElementById("remote-commit");
+const checkButton = document.getElementById("check-button");
+const applyButton = document.getElementById("apply-button");
+
+async function checkForUpdates() {
+  checkButton.disabled = true;
+  statusEl.textContent = "Prüfe...";
+  applyButton.style.display = "none";
+
+  try {
+    const res = await fetch("/admin/api/update/check");
+    const data = await res.json();
+
+    if (data.error) {
+      statusEl.textContent = `Fehler: ${data.error}`;
+      detailsEl.style.display = "none";
+      return;
+    }
+
+    detailsEl.style.display = "block";
+    currentEl.textContent = `${data.current.hash} - ${data.current.message}`;
+
+    if (data.up_to_date) {
+      statusEl.textContent = "Du hast die aktuellste Version.";
+      remoteInfoEl.style.display = "none";
+    } else {
+      statusEl.textContent = `${data.commits_behind} Update(s) verfügbar.`;
+      remoteInfoEl.style.display = "block";
+      remoteEl.textContent = `${data.remote.hash} - ${data.remote.message}`;
+      applyButton.style.display = "inline-block";
+    }
+  } catch (err) {
+    statusEl.textContent = "Fehler beim Prüfen auf Updates.";
+  } finally {
+    checkButton.disabled = false;
+  }
+}
+
+async function waitForBackendAndReload() {
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      const res = await fetch("/admin/", { cache: "no-store" });
+      if (res.ok) {
+        window.location.href = "/admin/update";
+        return;
+      }
+    } catch (err) {
+      // backend still restarting - keep waiting
+    }
+  }
+  statusEl.textContent = "Backend antwortet nach dem Update nicht - bitte Seite manuell neu laden.";
+}
+
+applyButton.addEventListener("click", async () => {
+  applyButton.disabled = true;
+  checkButton.disabled = true;
+  statusEl.textContent = "Update läuft... Seite lädt automatisch neu, sobald der Dienst wieder da ist.";
+  await fetch("/admin/api/update/apply", { method: "POST" });
+  waitForBackendAndReload();
+});
+
+checkButton.addEventListener("click", checkForUpdates);
+checkForUpdates();
+</script>
+{% endblock %}

@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from app import update_service
 from app.calendar_service import validate_ical_url
 from app.models import CalendarSource
 from app.weather_service import search_place
@@ -196,3 +197,19 @@ async def api_refresh_calendar(request: Request):
 async def api_refresh_weather(request: Request):
     _scheduler(request).refresh_weather_now()
     return {"status": "ok"}
+
+
+@router.get("/update")
+async def update_page(request: Request):
+    return templates.TemplateResponse(request, "admin/update.html", {})
+
+
+@router.get("/api/update/check")
+async def api_update_check(request: Request):
+    return update_service.check_for_updates()
+
+
+@router.post("/api/update/apply")
+async def api_update_apply(request: Request, background_tasks: BackgroundTasks):
+    background_tasks.add_task(update_service.apply_update)
+    return {"status": "started"}

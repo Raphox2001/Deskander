@@ -1,5 +1,14 @@
-const POLL_INTERVAL_MS = 60000;
-const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const POLL_INTERVAL_MS = 10000;
+const WEEKDAY_LABELS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const WEEKDAY_LABELS_FULL = [
+  "Montag",
+  "Dienstag",
+  "Mittwoch",
+  "Donnerstag",
+  "Freitag",
+  "Samstag",
+  "Sonntag",
+];
 const TIMELINE_DEFAULT_START_HOUR = 7;
 const TIMELINE_DEFAULT_END_HOUR = 23;
 const TIMELINE_LANE_HEIGHT_EM = 2.1;
@@ -215,7 +224,7 @@ function renderWeather(weather) {
     const label = document.createElement("div");
     label.className = "day-label";
     const d = new Date(day.date + "T00:00:00");
-    label.textContent = WEEKDAY_LABELS[(d.getDay() + 6) % 7];
+    label.textContent = WEEKDAY_LABELS_SHORT[(d.getDay() + 6) % 7];
 
     const temps = document.createElement("div");
     temps.textContent = `${Math.round(day.temperature_max)}°/${Math.round(day.temperature_min)}°`;
@@ -237,7 +246,7 @@ function renderCalendar(weeks, showWeekNumbers) {
   if (showWeekNumbers) {
     weekdaysEl.appendChild(document.createElement("div"));
   }
-  for (const label of WEEKDAY_LABELS) {
+  for (const label of WEEKDAY_LABELS_FULL) {
     const el = document.createElement("div");
     el.textContent = label;
     weekdaysEl.appendChild(el);
@@ -288,8 +297,18 @@ function renderCalendar(weeks, showWeekNumbers) {
 
 function renderStatus(data) {
   const el = document.getElementById("status-bar");
-  const time = new Date(data.generated_at).toLocaleTimeString("de-DE");
-  el.textContent = `Aktualisiert: ${time}`;
+  const calTime = data.calendar_updated_at
+    ? new Date(data.calendar_updated_at).toLocaleTimeString("de-DE")
+    : "-";
+  const weatherTime = data.weather_updated_at
+    ? new Date(data.weather_updated_at).toLocaleTimeString("de-DE")
+    : "-";
+  el.textContent = `Kalender aktualisiert: ${calTime} · Wetter: ${weatherTime}`;
+
+  const adminEl = document.getElementById("admin-url");
+  if (data.admin_url) {
+    adminEl.textContent = `Admin: ${data.admin_url}`;
+  }
 }
 
 async function refresh() {

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from app.cache import display_cache
+from app.network_info import get_lan_ip
 
 router = APIRouter()
 
@@ -20,5 +21,8 @@ async def kiosk_page(request: Request):
 
 
 @router.get("/display/data")
-async def display_data():
-    return JSONResponse(display_cache.get())
+async def display_data(request: Request):
+    data = display_cache.get()
+    port = request.url.port or 8000
+    data["admin_url"] = f"http://{get_lan_ip()}:{port}/admin"
+    return JSONResponse(data)

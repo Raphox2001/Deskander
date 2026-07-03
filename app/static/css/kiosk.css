@@ -125,7 +125,7 @@ html, body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #333;
+  background: #4a4a4a;
   z-index: 0;
 }
 
@@ -134,7 +134,7 @@ html, body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #1a1a1a;
+  background: #262626;
   z-index: 0;
 }
 
@@ -206,7 +206,7 @@ html, body {
   text-transform: uppercase;
   font-size: 0.75em;
   padding-bottom: 0.4em;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #333;
 }
 
 .calendar-weekdays.with-weeknum {
@@ -219,7 +219,7 @@ html, body {
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: 1fr;
   gap: 1px;
-  background: #111;
+  background: #1c1c1c;
   min-height: 0;
 }
 
@@ -283,7 +283,14 @@ html, body {
 .status-bar {
   position: fixed;
   bottom: 0.3vh;
-  right: 0.6vw;
   font-size: 0.55em;
   color: var(--fg-dim);
+}
+
+.status-bar-left {
+  left: 0.6vw;
+}
+
+.status-bar-right {
+  right: 0.6vw;
 }
