@@ -311,6 +311,8 @@ function renderStatus(data) {
   }
 }
 
+let knownBackendBootId = null;
+
 async function refresh() {
   try {
     const response = await fetch("/display/data", { cache: "no-store" });
@@ -318,6 +320,18 @@ async function refresh() {
       throw new Error(`HTTP ${response.status}`);
     }
     const data = await response.json();
+
+    // The backend generates a fresh boot id on every process start. If it
+    // changes after we've already seen one, the backend was restarted
+    // (deploy/update/crash-restart) - reload so this tab picks up the new
+    // HTML/CSS/JS instead of running stale code indefinitely.
+    if (knownBackendBootId === null) {
+      knownBackendBootId = data.backend_boot_id;
+    } else if (data.backend_boot_id && data.backend_boot_id !== knownBackendBootId) {
+      window.location.reload();
+      return;
+    }
+
     const { allDay, timed } = splitTodaysEvents(data.agenda, todayIsoDate());
     renderAllDay(allDay);
     renderTimeline(timed);
