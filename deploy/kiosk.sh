@@ -12,7 +12,7 @@ xset s off 2>/dev/null
 xset s noblank 2>/dev/null
 
 while true; do
-  chromium-browser \
+  chromium \
     --kiosk \
     --noerrdialogs \
     --disable-infobars \
