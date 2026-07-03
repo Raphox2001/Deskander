@@ -63,9 +63,14 @@ def apply_update() -> None:
     try:
         pull = _run(["git", "pull", "origin", "main"], timeout=60)
         logger.info("update: git pull: %s", pull.stdout.strip() or pull.stderr.strip())
+        if pull.returncode != 0:
+            logger.error("update: git pull failed, aborting before install.sh/restart")
+            return
 
         install = _run(["./install.sh"], timeout=INSTALL_TIMEOUT_SECONDS)
         logger.info("update: install.sh: %s", install.stdout.strip() or install.stderr.strip())
+        if install.returncode != 0:
+            logger.error("update: install.sh failed (code %s) - restarting anyway so the service isn't left down", install.returncode)
 
         subprocess.Popen(
             ["sh", "-c", "sleep 2 && sudo systemctl restart dashboard-backend"],
