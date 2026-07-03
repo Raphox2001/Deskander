@@ -23,9 +23,13 @@ while true; do
     --disable-gpu \
     --disable-gpu-compositing \
     --password-store=basic \
+    --disable-features=Translate \
     "$URL"
   # --disable-gpu(-compositing): avoids a blank/white render seen on this
   #   Pi's Wayland+GPU-rasterization combo; --password-store=basic skips
-  #   Chromium trying to use the (headless, keyboard-less) OS keyring.
+  #   Chromium trying to use the (headless, keyboard-less) OS keyring;
+  #   --disable-features=Translate suppresses the "translate this page?"
+  #   bubble (page is German, browser UI language is English) - the older
+  #   --disable-translate switch alone no longer suppresses it.
   sleep 5
 done
