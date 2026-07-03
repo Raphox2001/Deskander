@@ -43,10 +43,15 @@ else
   echo "==> Kein ~/.config/labwc gefunden (kein labwc/Wayland-Desktop?) - Autostart manuell einrichten, siehe README"
 fi
 
+echo "==> Bildschirmschoner deaktivieren"
+if command -v raspi-config > /dev/null 2>&1; then
+  sudo raspi-config nonint do_blanking 1 || echo "==> Konnte Screen Blanking nicht automatisch deaktivieren - manuell pruefen: raspi-config -> Display Options -> Screen Blanking"
+else
+  echo "==> raspi-config nicht gefunden - Screen Blanking manuell deaktivieren"
+fi
+
 echo "==> Done."
 echo "Backend läuft: sudo systemctl status $SERVICE_NAME"
 echo "Admin-GUI: http://$(hostname -I | awk '{print $1}'):8000/admin"
 echo ""
-echo "Noch manuell (einmalig):"
-echo "  raspi-config -> Display Options -> Screen Blanking -> No"
-echo "  sudo reboot"
+echo "Einmalig noch: sudo reboot (damit Kiosk-Autostart und Bildschirmschoner-Einstellung greifen)"
