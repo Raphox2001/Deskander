@@ -20,6 +20,12 @@ while true; do
     --disable-translate \
     --overscroll-history-navigation=0 \
     --ozone-platform=wayland \
+    --disable-gpu \
+    --disable-gpu-compositing \
+    --password-store=basic \
     "$URL"
+  # --disable-gpu(-compositing): avoids a blank/white render seen on this
+  #   Pi's Wayland+GPU-rasterization combo; --password-store=basic skips
+  #   Chromium trying to use the (headless, keyboard-less) OS keyring.
   sleep 5
 done
