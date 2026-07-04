@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- Minimal labwc config: keeps all built-in keybinds (<default/>) and adds
+     one extra keybind that triggers labwc's own HideCursor action. install.sh
+     copies this to ~/.config/labwc/rc.xml (only if that file doesn't already
+     exist) and adds an autostart line that "presses" this keybind once via
+     wtype - since the kiosk has no physical mouse to move the cursor again
+     afterwards, the cursor stays hidden for good. CSS `cursor: none` alone
+     doesn't reliably hide the cursor under labwc/Wayland - see
+     https://github.com/labwc/labwc/discussions/3052 -->
+<labwc_config>
+  <keyboard>
+    <default/>
+    <keybind key="A-W-h">
+      <action name="HideCursor"/>
+    </keybind>
+  </keyboard>
+</labwc_config>

@@ -248,6 +248,7 @@ html, body {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: 1fr;
   gap: 1px;
   background: var(--fg-faint);
   min-height: 0;
@@ -257,14 +258,20 @@ html, body {
   grid-template-columns: 3rem repeat(7, 1fr);
 }
 
-/* Ganztägige (auch mehrtägige) Events: durchgehender Balken über die
-   jeweiligen Tage hinweg, oberhalb der Tageszahlen. */
+/* Ganztägige (auch mehrtägige) Events: durchgehender Balken, der als
+   eigenes Grid-Item über den betroffenen Tageskacheln liegt (gleiche
+   Grid-Zeile/-Spalten wie die Kacheln, danach im DOM eingefügt -> liegt
+   optisch oben drauf). So bleibt der Balken bei mehrtägigen Events
+   durchgehend, ohne dass eine eigene, leere Grid-Zeile den grauen
+   Hintergrund über die ganze Woche durchscheinen lässt. */
 .allday-bar {
   display: flex;
   align-items: center;
+  align-self: start;
   font-size: 0.62em;
   line-height: 1.2;
   padding: 0.1em 0.4em;
+  border-radius: 0.15em;
   color: #fff;
   overflow: hidden;
   white-space: nowrap;
@@ -299,8 +306,35 @@ html, body {
 
 .calendar-day .day-number {
   font-size: 0.8em;
+  line-height: 1;
   color: var(--fg-dim);
   margin-bottom: 0.2em;
+}
+
+.day-events {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Days with too many events to fit the tile: auto-scroll the (otherwise
+   clipped) list into view over a few seconds instead of just cutting it off.
+   Rebuilt fresh on every /display/data poll, so the animation always
+   restarts at 0% right when new markup is created - no mid-cycle jump. */
+.day-events-inner.scrolling {
+  animation: day-events-scroll 10s ease-in-out infinite;
+}
+
+@keyframes day-events-scroll {
+  0%, 8% {
+    transform: translateY(0);
+  }
+  46%, 54% {
+    transform: translateY(var(--day-events-scroll-distance, 0));
+  }
+  92%, 100% {
+    transform: translateY(0);
+  }
 }
 
 .calendar-day .event {

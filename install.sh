@@ -43,6 +43,27 @@ else
   echo "==> Kein ~/.config/labwc gefunden (kein labwc/Wayland-Desktop?) - Autostart manuell einrichten, siehe README"
 fi
 
+echo "==> Mauscursor ausblenden (labwc HideCursor + wtype)"
+if [ -d "$HOME/.config/labwc" ]; then
+  sudo apt-get install -y wtype -qq || echo "==> Konnte wtype nicht installieren - Cursor-Ausblenden manuell einrichten (siehe deploy/labwc-rc.xml)"
+  if [ ! -f "$HOME/.config/labwc/rc.xml" ]; then
+    cp "$PROJECT_DIR/deploy/labwc-rc.xml" "$HOME/.config/labwc/rc.xml"
+    echo "==> ~/.config/labwc/rc.xml angelegt (HideCursor-Keybind Alt+Super+h)"
+  else
+    echo "==> ~/.config/labwc/rc.xml existiert bereits - HideCursor-Keybind ggf. manuell aus deploy/labwc-rc.xml uebernehmen"
+  fi
+  WTYPE_LINE="sleep 1 && wtype -M alt -M logo -P h -p h -m logo -m alt &"
+  touch "$HOME/.config/labwc/autostart"
+  if ! grep -qF "wtype -M alt -M logo -P h" "$HOME/.config/labwc/autostart"; then
+    echo "$WTYPE_LINE" >> "$HOME/.config/labwc/autostart"
+    echo "==> Cursor-Ausblenden zu autostart hinzugefuegt"
+  else
+    echo "==> Cursor-Ausblenden bereits in autostart vorhanden"
+  fi
+else
+  echo "==> Kein ~/.config/labwc gefunden - Cursor-Ausblenden manuell einrichten"
+fi
+
 echo "==> Bildschirmschoner deaktivieren"
 if command -v raspi-config > /dev/null 2>&1; then
   sudo raspi-config nonint do_blanking 1 || echo "==> Konnte Screen Blanking nicht automatisch deaktivieren - manuell pruefen: raspi-config -> Display Options -> Screen Blanking"

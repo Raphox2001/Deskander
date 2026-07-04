@@ -300,6 +300,15 @@ function assignBarLanes(bars) {
   return { bars: withLanes, laneCount: laneEndIndex.length };
 }
 
+// Space reserved above the timed-events list for the all-day bar(s), in the
+// (unscaled) em unit of .calendar-day - not day-number's own smaller font.
+// .calendar-day's own 0.3em padding-top + the day-number's rendered height
+// (0.8em, line-height 1) + its 0.2em margin-bottom - the bar is a sibling
+// grid item overlaid from the day cell's outer edge, so it needs the
+// padding included too (unlike the day-number, which is inside that padding).
+const ALLDAY_TOP_OFFSET_EM = 1.3;
+const ALLDAY_BAR_HEIGHT_EM = 1.05; // per lane, including the gap to the next lane/timed events
+
 function renderCalendar(weeks, showWeekNumbers) {
   const weekdaysEl = document.getElementById("calendar-weekdays");
   const gridEl = document.getElementById("calendar-grid");
@@ -326,28 +335,22 @@ function renderCalendar(weeks, showWeekNumbers) {
     const weekEl = document.createElement("div");
     weekEl.className = "calendar-week";
     weekEl.classList.toggle("with-weeknum", !!showWeekNumbers);
-    weekEl.style.gridTemplateRows = laneCount > 0 ? `repeat(${laneCount}, auto) 1fr` : "1fr";
 
     if (showWeekNumbers) {
       const weekNumEl = document.createElement("div");
       weekNumEl.className = "calendar-weeknum";
       weekNumEl.textContent = `KW ${week.week_number}`;
       weekNumEl.style.gridColumn = "1";
-      weekNumEl.style.gridRow = `1 / span ${laneCount + 1}`;
+      weekNumEl.style.gridRow = "1";
       weekEl.appendChild(weekNumEl);
     }
 
-    for (const bar of bars) {
-      const barEl = document.createElement("div");
-      barEl.className = "allday-bar";
-      barEl.style.gridColumn = `${colOffset + bar.startIndex + 1} / ${colOffset + bar.endIndex + 2}`;
-      barEl.style.gridRow = `${bar.lane + 1}`;
-      barEl.style.background = bar.event.color || "#6fa8dc";
-      barEl.textContent = bar.event.title;
-      barEl.title = bar.event.title;
-      weekEl.appendChild(barEl);
-    }
-
+    // Day cells always occupy the week's single grid row/columns, at their
+    // full (uniform) height - so weeks never shrink each other's tiles. Both
+    // axes must be explicit (not just gridColumn) - otherwise auto-placement
+    // treats the bars below (which ARE fully explicit) as occupying those
+    // cells and pushes same-column day cells into an implicit row 2 instead
+    // of letting the two intentionally overlap.
     week.days.forEach((day, dayIndex) => {
       const dayEl = document.createElement("div");
       dayEl.className = "calendar-day";
@@ -355,26 +358,74 @@ function renderCalendar(weeks, showWeekNumbers) {
         dayEl.classList.add("today");
       }
       dayEl.style.gridColumn = `${colOffset + dayIndex + 1}`;
-      dayEl.style.gridRow = `${laneCount + 1}`;
+      dayEl.style.gridRow = "1";
 
       const number = document.createElement("div");
       number.className = "day-number";
       number.textContent = String(parseInt(day.date.slice(8, 10), 10));
       dayEl.appendChild(number);
 
+      const eventsEl = document.createElement("div");
+      eventsEl.className = "day-events";
+      if (laneCount > 0) {
+        // rem, not em: .day-events has no own font-size so em would match
+        // anyway, but rem keeps this consistent with .allday-bar below,
+        // which DOES set its own (smaller) font-size.
+        eventsEl.style.marginTop = `${laneCount * ALLDAY_BAR_HEIGHT_EM}rem`;
+      }
+      // Separate scrollable inner wrapper: .day-events clips (overflow:
+      // hidden) and stays put, this inner div is what gets translated by the
+      // auto-scroll animation when there are too many events to fit.
+      const innerEl = document.createElement("div");
+      innerEl.className = "day-events-inner";
       for (const event of day.events) {
-        if (event.all_day) continue; // rendered as bars above, not per-day
+        if (event.all_day) continue; // rendered as bars overlaid below, not per-day
         const evEl = document.createElement("div");
         evEl.className = "event timed";
         evEl.style.color = event.color || "#6fa8dc";
         evEl.textContent = `${formatTime(event.start)} ${event.title}`;
-        dayEl.appendChild(evEl);
+        innerEl.appendChild(evEl);
       }
+      eventsEl.appendChild(innerEl);
+      dayEl.appendChild(eventsEl);
 
       weekEl.appendChild(dayEl);
     });
 
+    // All-day bars are separate grid items overlaid on top of the day cells
+    // they span (same grid row/columns, drawn after in DOM order) - this is
+    // what lets a multi-day event render as one continuous bar without a
+    // reserved grid row bleeding the container's grey gap-color across days
+    // that have no all-day event that week.
+    for (const bar of bars) {
+      const barEl = document.createElement("div");
+      barEl.className = "allday-bar";
+      barEl.style.gridColumn = `${colOffset + bar.startIndex + 1} / ${colOffset + bar.endIndex + 2}`;
+      // Explicit grid-row: without it, auto-placement puts the bar in a new
+      // implicit row instead of overlapping row 1 with the day cells.
+      barEl.style.gridRow = "1";
+      // rem, not em: .allday-bar sets its own (smaller) font-size, so an em
+      // value here would be relative to that instead of the day cell's size.
+      barEl.style.marginTop = `${ALLDAY_TOP_OFFSET_EM + bar.lane * ALLDAY_BAR_HEIGHT_EM}rem`;
+      barEl.style.height = `${ALLDAY_BAR_HEIGHT_EM - 0.15}rem`;
+      barEl.style.background = bar.event.color || "#6fa8dc";
+      barEl.textContent = bar.event.title;
+      barEl.title = bar.event.title;
+      weekEl.appendChild(barEl);
+    }
+
     gridEl.appendChild(weekEl);
+  }
+
+  // Days with more events than fit the tile: auto-scroll them into view
+  // instead of clipping them silently. Measured after all weeks are in the
+  // DOM so layout (and thus each day-cell's real available height) is final.
+  for (const inner of gridEl.querySelectorAll(".day-events-inner")) {
+    const overflow = inner.scrollHeight - inner.parentElement.clientHeight;
+    if (overflow > 2) {
+      inner.style.setProperty("--day-events-scroll-distance", `-${overflow}px`);
+      inner.classList.add("scrolling");
+    }
   }
 }
 
