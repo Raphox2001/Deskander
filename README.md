@@ -9,11 +9,12 @@ Eigenes Dashboard für einen Raspberry Pi mit angeschlossenem Bildschirm - gedac
 ## Features
 
 - **Kalender**: mehrere iCal-Quellen gleichzeitig, jede mit eigener Farbe, inkl. wiederkehrender Termine, mit Start- **und** Endzeit.
-- **Zeitleiste** für die heutigen Termine (7-23 Uhr, erweitert sich automatisch bei früheren/späteren Terminen), überlappende Termine werden nebeneinander dargestellt.
-- **Monatskalender** mit konfigurierbarer Wochenanzahl und optionaler Kalenderwochen-Spalte.
+- **Zeitleiste** für die heutigen Termine (7-23 Uhr, erweitert sich automatisch bei früheren/späteren Terminen), überlappende Termine werden nebeneinander dargestellt. Ein roter, sekündlich mitlaufender Strich zeigt die aktuelle Uhrzeit direkt auf der Zeitleiste.
+- **Monatskalender** mit konfigurierbarer Wochenanzahl und optionaler Kalenderwochen-Spalte. Ganztägige (auch mehrtägige) Termine erscheinen als durchgehender Balken oben in den Tageskacheln; Tage mit mehr Terminen, als in eine Kachel passen, scrollen den Rest automatisch durch.
 - **Wetter** über [Open-Meteo](https://open-meteo.com/) (kostenlos, kein API-Key nötig), inkl. Ortssuche im Admin-GUI.
-- **Admin-GUI** (`/admin`) - von jedem Gerät im selben Netzwerk erreichbar, kein Login nötig.
+- **Admin-GUI** (`/admin`) - von jedem Gerät im selben Netzwerk erreichbar, kein Login nötig. Die Admin-URL unten links im Kiosk lässt sich in den Anzeige-Einstellungen ein-/ausblenden.
 - **Update-Panel** (`/admin/update`) - zeigt, ob eine neuere Version verfügbar ist, und installiert sie per Klick.
+- **Kiosk-Feinschliff**: Mauscursor bleibt dauerhaft ausgeblendet (labwc `HideCursor`, automatisch per `install.sh` eingerichtet), Kalender-/Wetter-Aktualisierung startet sofort beim Systemstart und versucht es bei einem Fehlschlag (z.B. Netzwerk noch nicht bereit) nach 60 Sekunden erneut statt das ganze Intervall abzuwarten.
 
 ## Voraussetzungen
 
