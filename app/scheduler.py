@@ -87,6 +87,11 @@ class DashboardScheduler:
             id=CALENDAR_JOB_ID,
             replace_existing=True,
             next_run_time=now,
+            # APScheduler's default (1s) skips a run entirely if the process
+            # was busy for even a few seconds past its due time - on a Pi
+            # under load that silently doubles (or worse) the configured
+            # interval. None = always run, however late, instead of skipping.
+            misfire_grace_time=None,
         )
         self._scheduler.add_job(
             refresh_weather_job,
@@ -95,6 +100,7 @@ class DashboardScheduler:
             id=WEATHER_JOB_ID,
             replace_existing=True,
             next_run_time=now,
+            misfire_grace_time=None,
         )
         self._scheduler.start()
 
