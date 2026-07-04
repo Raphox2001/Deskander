@@ -330,7 +330,7 @@ function renderCalendar(weeks, showWeekNumbers) {
   const colOffset = showWeekNumbers ? 1 : 0;
 
   for (const week of weeks || []) {
-    const { bars, laneCount } = assignBarLanes(collectWeekAllDayBars(week));
+    const { bars } = assignBarLanes(collectWeekAllDayBars(week));
 
     const weekEl = document.createElement("div");
     weekEl.className = "calendar-week";
@@ -367,11 +367,21 @@ function renderCalendar(weeks, showWeekNumbers) {
 
       const eventsEl = document.createElement("div");
       eventsEl.className = "day-events";
-      if (laneCount > 0) {
+      // Reserve space only for the lanes that actually cover THIS day, not
+      // the week's overall max - otherwise a day without any all-day event
+      // still gets pushed down just because some other day in the same
+      // week has one.
+      let dayLaneCount = 0;
+      for (const bar of bars) {
+        if (dayIndex >= bar.startIndex && dayIndex <= bar.endIndex) {
+          dayLaneCount = Math.max(dayLaneCount, bar.lane + 1);
+        }
+      }
+      if (dayLaneCount > 0) {
         // rem, not em: .day-events has no own font-size so em would match
         // anyway, but rem keeps this consistent with .allday-bar below,
         // which DOES set its own (smaller) font-size.
-        eventsEl.style.marginTop = `${laneCount * ALLDAY_BAR_HEIGHT_EM}rem`;
+        eventsEl.style.marginTop = `${dayLaneCount * ALLDAY_BAR_HEIGHT_EM}rem`;
       }
       // Separate scrollable inner wrapper: .day-events clips (overflow:
       // hidden) and stays put, this inner div is what gets translated by the
