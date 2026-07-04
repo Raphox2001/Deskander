@@ -1,9 +1,11 @@
 :root {
   --bg: #000000;
   --fg: #d0d0d0;
-  --fg-dim: #6f6f6f;
+  --fg-dim: #efefef;
+  --fg-faint: #6f6f6f;
   --accent: #6fa8dc;
   --today-bg: #1c2a38;
+  --now-line: #e5473a;
   --font-scale: clamp(14px, 1.4vw, 22px);
 }
 
@@ -21,6 +23,7 @@ html, body {
   font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: var(--font-scale);
   overflow: hidden;
+  cursor: none;
 }
 
 .dashboard {
@@ -125,7 +128,7 @@ html, body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #4a4a4a;
+  background: var(--fg-dim);
   z-index: 0;
 }
 
@@ -134,8 +137,18 @@ html, body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #262626;
+  background: var(--fg-faint);
   z-index: 0;
+}
+
+.timeline-now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--now-line);
+  z-index: 3;
+  pointer-events: none;
 }
 
 .timeline-event {
@@ -207,7 +220,7 @@ html, body {
   text-transform: uppercase;
   font-size: 0.75em;
   padding-bottom: 0.4em;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--fg-faint);
 }
 
 /* Match the day tiles' own padding so the weekday label lines up with the
@@ -224,16 +237,38 @@ html, body {
 
 .calendar-grid {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1px;
-  background: #1c1c1c;
+  background: var(--fg-faint);
   min-height: 0;
 }
 
-.calendar-grid.with-weeknum {
+.calendar-week {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--fg-faint);
+  min-height: 0;
+}
+
+.calendar-week.with-weeknum {
   grid-template-columns: 3rem repeat(7, 1fr);
+}
+
+/* Ganztägige (auch mehrtägige) Events: durchgehender Balken über die
+   jeweiligen Tage hinweg, oberhalb der Tageszahlen. */
+.allday-bar {
+  display: flex;
+  align-items: center;
+  font-size: 0.62em;
+  line-height: 1.2;
+  padding: 0.1em 0.4em;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .calendar-weeknum {
@@ -280,13 +315,6 @@ html, body {
 /* Timed events: plain colored text, no block. */
 .calendar-day .event.timed {
   padding: 0.05em 0;
-}
-
-/* All-day events: solid colored block with white text. */
-.calendar-day .event.all-day {
-  padding: 0.05em 0.3em;
-  border-radius: 0.2em;
-  color: #fff;
 }
 
 .status-bar {

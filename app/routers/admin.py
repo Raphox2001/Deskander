@@ -176,12 +176,14 @@ async def update_display(
     agenda_days_ahead: int = Form(...),
     timezone: str = Form(...),
     show_week_numbers: Optional[str] = Form(None),
+    show_admin_url: Optional[str] = Form(None),
 ):
     settings = _store(request).load()
     settings.display.calendar_weeks_shown = calendar_weeks_shown
     settings.display.agenda_days_ahead = agenda_days_ahead
     settings.display.timezone = timezone
     settings.display.show_week_numbers = bool(show_week_numbers)
+    settings.display.show_admin_url = bool(show_admin_url)
     _store(request).save(settings)
     _scheduler(request).refresh_calendar_now()
     return RedirectResponse("/admin", status_code=303)

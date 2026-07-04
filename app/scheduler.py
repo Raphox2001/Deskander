@@ -18,11 +18,15 @@ logger = logging.getLogger(__name__)
 CALENDAR_JOB_ID = "refresh_calendar"
 WEATHER_JOB_ID = "refresh_weather"
 
+# If a refresh fails (e.g. network not up yet right after boot), retry
+# quickly instead of waiting for the full configured interval to elapse.
+RETRY_SECONDS = 60
+
 
 async def _refresh_calendar(store: SettingsStore) -> None:
     settings = store.load()
     today = dt.date.today()
-    window_start = today - dt.timedelta(days=1)
+    window_start = today - dt.timedelta(days=today.weekday())  # Monday of current week
     window_end = today + dt.timedelta(weeks=settings.display.calendar_weeks_shown)
     events = await fetch_all_events(settings, window_start, window_end)
     snapshot = build_snapshot(
@@ -35,11 +39,12 @@ async def _refresh_calendar(store: SettingsStore) -> None:
     display_cache.set_calendar(snapshot)
 
 
-def refresh_calendar_job(store: SettingsStore) -> None:
+def refresh_calendar_job(scheduler: "DashboardScheduler") -> None:
     try:
-        asyncio.run(_refresh_calendar(store))
+        asyncio.run(_refresh_calendar(scheduler._store))
     except Exception:
-        logger.exception("Calendar refresh job failed")
+        logger.exception("Calendar refresh job failed, retrying in %ss", RETRY_SECONDS)
+        scheduler._schedule_retry(CALENDAR_JOB_ID)
 
 
 async def _refresh_weather(store: SettingsStore) -> None:
@@ -50,11 +55,12 @@ async def _refresh_weather(store: SettingsStore) -> None:
         display_cache.set_weather(weather)
 
 
-def refresh_weather_job(store: SettingsStore) -> None:
+def refresh_weather_job(scheduler: "DashboardScheduler") -> None:
     try:
-        asyncio.run(_refresh_weather(store))
+        asyncio.run(_refresh_weather(scheduler._store))
     except Exception:
-        logger.exception("Weather refresh job failed")
+        logger.exception("Weather refresh job failed, retrying in %ss", RETRY_SECONDS)
+        scheduler._schedule_retry(WEATHER_JOB_ID)
 
 
 class DashboardScheduler:
@@ -77,7 +83,7 @@ class DashboardScheduler:
         self._scheduler.add_job(
             refresh_calendar_job,
             trigger=IntervalTrigger(minutes=settings.calendar_refresh_minutes),
-            args=[self._store],
+            args=[self],
             id=CALENDAR_JOB_ID,
             replace_existing=True,
             next_run_time=now,
@@ -85,7 +91,7 @@ class DashboardScheduler:
         self._scheduler.add_job(
             refresh_weather_job,
             trigger=IntervalTrigger(minutes=settings.weather.refresh_minutes),
-            args=[self._store],
+            args=[self],
             id=WEATHER_JOB_ID,
             replace_existing=True,
             next_run_time=now,
@@ -94,6 +100,10 @@ class DashboardScheduler:
 
     def shutdown(self) -> None:
         self._scheduler.shutdown(wait=False)
+
+    def _schedule_retry(self, job_id: str) -> None:
+        retry_time = dt.datetime.now() + dt.timedelta(seconds=RETRY_SECONDS)
+        self._scheduler.modify_job(job_id, next_run_time=retry_time)
 
     def refresh_calendar_now(self) -> None:
         self._scheduler.modify_job(CALENDAR_JOB_ID, next_run_time=dt.datetime.now())

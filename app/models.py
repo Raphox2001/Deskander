@@ -27,6 +27,7 @@ class DisplaySettings(BaseModel):
     agenda_days_ahead: int = 1
     timezone: str = "Europe/Berlin"
     show_week_numbers: bool = True
+    show_admin_url: bool = True
 
 
 class Settings(BaseModel):

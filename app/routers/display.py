@@ -30,7 +30,9 @@ async def kiosk_page(request: Request):
 @router.get("/display/data")
 async def display_data(request: Request):
     data = display_cache.get()
-    port = request.url.port or 8000
-    data["admin_url"] = f"http://{get_lan_ip()}:{port}/admin"
+    settings = request.app.state.settings_store.load()
+    if settings.display.show_admin_url:
+        port = request.url.port or 8000
+        data["admin_url"] = f"http://{get_lan_ip()}:{port}/admin"
     data["backend_boot_id"] = BOOT_ID
     return JSONResponse(data)

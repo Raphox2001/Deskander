@@ -97,6 +97,22 @@ function assignTimelineLanes(events) {
   return { events: withLanes, laneCount: Math.max(laneEndTimes.length, 1) };
 }
 
+let currentTimelineRange = null;
+
+function updateNowLine() {
+  const lineEl = document.getElementById("timeline-now-line");
+  if (!lineEl || !currentTimelineRange) return;
+  const { startHour, endHour } = currentTimelineRange;
+  const frac = hourFraction(new Date());
+  if (frac < startHour || frac > endHour) {
+    lineEl.style.display = "none";
+    return;
+  }
+  const pct = ((frac - startHour) / (endHour - startHour)) * 100;
+  lineEl.style.display = "block";
+  lineEl.style.left = `${pct}%`;
+}
+
 function renderTimeline(timedEvents) {
   const hoursEl = document.getElementById("timeline-hours");
   const trackEl = document.getElementById("timeline-track");
@@ -109,6 +125,7 @@ function renderTimeline(timedEvents) {
     trackEl.style.display = "none";
     emptyEl.style.display = "block";
     emptyEl.textContent = "Keine Termine heute";
+    currentTimelineRange = null;
     return;
   }
   hoursEl.style.display = "block";
@@ -189,6 +206,14 @@ function renderTimeline(timedEvents) {
     block.title = `${event.title} (${formatTimeFromDate(event.startDate)}–${formatTimeFromDate(event.endDate)})`;
     trackEl.appendChild(block);
   }
+
+  const nowLine = document.createElement("div");
+  nowLine.id = "timeline-now-line";
+  nowLine.className = "timeline-now-line";
+  trackEl.appendChild(nowLine);
+
+  currentTimelineRange = { startHour: rangeStartHour, endHour: rangeEndHour };
+  updateNowLine();
 }
 
 function renderWeather(weather) {
@@ -235,12 +260,51 @@ function renderWeather(weather) {
   }
 }
 
+function collectWeekAllDayBars(week) {
+  // Each all-day event appears once per day it spans in the backend payload
+  // (one dict per day-in-range). Collapse those duplicates back into a
+  // single bar per event, spanning from its first to its last day this week.
+  const map = new Map();
+  week.days.forEach((day, dayIndex) => {
+    for (const event of day.events) {
+      if (!event.all_day) continue;
+      const key = `${event.source_id}|${event.title}|${event.start}|${event.end}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.startIndex = Math.min(existing.startIndex, dayIndex);
+        existing.endIndex = Math.max(existing.endIndex, dayIndex);
+      } else {
+        map.set(key, { event, startIndex: dayIndex, endIndex: dayIndex });
+      }
+    }
+  });
+  return Array.from(map.values());
+}
+
+function assignBarLanes(bars) {
+  const sorted = [...bars].sort(
+    (a, b) => a.startIndex - b.startIndex || b.endIndex - a.endIndex
+  );
+  const laneEndIndex = [];
+  const withLanes = [];
+  for (const bar of sorted) {
+    let lane = laneEndIndex.findIndex((endIndex) => endIndex < bar.startIndex);
+    if (lane === -1) {
+      lane = laneEndIndex.length;
+      laneEndIndex.push(bar.endIndex);
+    } else {
+      laneEndIndex[lane] = bar.endIndex;
+    }
+    withLanes.push({ ...bar, lane });
+  }
+  return { bars: withLanes, laneCount: laneEndIndex.length };
+}
+
 function renderCalendar(weeks, showWeekNumbers) {
   const weekdaysEl = document.getElementById("calendar-weekdays");
   const gridEl = document.getElementById("calendar-grid");
 
   weekdaysEl.classList.toggle("with-weeknum", !!showWeekNumbers);
-  gridEl.classList.toggle("with-weeknum", !!showWeekNumbers);
 
   weekdaysEl.innerHTML = "";
   if (showWeekNumbers) {
@@ -254,21 +318,44 @@ function renderCalendar(weeks, showWeekNumbers) {
 
   gridEl.innerHTML = "";
   const today = todayIsoDate();
+  const colOffset = showWeekNumbers ? 1 : 0;
 
   for (const week of weeks || []) {
+    const { bars, laneCount } = assignBarLanes(collectWeekAllDayBars(week));
+
+    const weekEl = document.createElement("div");
+    weekEl.className = "calendar-week";
+    weekEl.classList.toggle("with-weeknum", !!showWeekNumbers);
+    weekEl.style.gridTemplateRows = laneCount > 0 ? `repeat(${laneCount}, auto) 1fr` : "1fr";
+
     if (showWeekNumbers) {
       const weekNumEl = document.createElement("div");
       weekNumEl.className = "calendar-weeknum";
       weekNumEl.textContent = `KW ${week.week_number}`;
-      gridEl.appendChild(weekNumEl);
+      weekNumEl.style.gridColumn = "1";
+      weekNumEl.style.gridRow = `1 / span ${laneCount + 1}`;
+      weekEl.appendChild(weekNumEl);
     }
 
-    for (const day of week.days) {
+    for (const bar of bars) {
+      const barEl = document.createElement("div");
+      barEl.className = "allday-bar";
+      barEl.style.gridColumn = `${colOffset + bar.startIndex + 1} / ${colOffset + bar.endIndex + 2}`;
+      barEl.style.gridRow = `${bar.lane + 1}`;
+      barEl.style.background = bar.event.color || "#6fa8dc";
+      barEl.textContent = bar.event.title;
+      barEl.title = bar.event.title;
+      weekEl.appendChild(barEl);
+    }
+
+    week.days.forEach((day, dayIndex) => {
       const dayEl = document.createElement("div");
       dayEl.className = "calendar-day";
       if (day.date === today) {
         dayEl.classList.add("today");
       }
+      dayEl.style.gridColumn = `${colOffset + dayIndex + 1}`;
+      dayEl.style.gridRow = `${laneCount + 1}`;
 
       const number = document.createElement("div");
       number.className = "day-number";
@@ -276,22 +363,18 @@ function renderCalendar(weeks, showWeekNumbers) {
       dayEl.appendChild(number);
 
       for (const event of day.events) {
+        if (event.all_day) continue; // rendered as bars above, not per-day
         const evEl = document.createElement("div");
-        const color = event.color || "#6fa8dc";
-        if (event.all_day) {
-          evEl.className = "event all-day";
-          evEl.style.background = color;
-          evEl.textContent = event.title;
-        } else {
-          evEl.className = "event timed";
-          evEl.style.color = color;
-          evEl.textContent = `${formatTime(event.start)} ${event.title}`;
-        }
+        evEl.className = "event timed";
+        evEl.style.color = event.color || "#6fa8dc";
+        evEl.textContent = `${formatTime(event.start)} ${event.title}`;
         dayEl.appendChild(evEl);
       }
 
-      gridEl.appendChild(dayEl);
-    }
+      weekEl.appendChild(dayEl);
+    });
+
+    gridEl.appendChild(weekEl);
   }
 }
 
@@ -308,6 +391,9 @@ function renderStatus(data) {
   const adminEl = document.getElementById("admin-url");
   if (data.admin_url) {
     adminEl.textContent = `Admin: ${data.admin_url}`;
+    adminEl.style.display = "";
+  } else {
+    adminEl.style.display = "none";
   }
 }
 
@@ -344,7 +430,11 @@ async function refresh() {
 }
 
 updateClock();
-setInterval(updateClock, 1000);
+updateNowLine();
+setInterval(() => {
+  updateClock();
+  updateNowLine();
+}, 1000);
 
 refresh();
 setInterval(refresh, POLL_INTERVAL_MS);

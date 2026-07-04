@@ -17,6 +17,10 @@
     <input type="checkbox" name="show_week_numbers" {% if display.show_week_numbers %}checked{% endif %}>
     Kalenderwochen-Nummern anzeigen
   </label>
+  <label class="checkbox">
+    <input type="checkbox" name="show_admin_url" {% if display.show_admin_url %}checked{% endif %}>
+    Admin-URL unten links anzeigen
+  </label>
   <div class="form-actions">
     <button type="submit">Speichern</button>
     <a href="/admin">Abbrechen</a>
