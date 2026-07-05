@@ -203,6 +203,21 @@ html, body {
   font-size: 0.85em;
 }
 
+/* Small average-condition icon below each day's temperatures. Sized in em so
+   it scales with the forecast font and stays modest; the extra line fits
+   within the (taller) clock's row height, so it doesn't push the agenda down. */
+.weather-forecast .day-icon {
+  margin-top: 0.15em;
+  color: var(--fg-dim);
+}
+
+.weather-forecast .day-icon svg {
+  width: 1.5em;
+  height: 1.5em;
+  display: block;
+  margin: 0 auto;
+}
+
 /* Monthly calendar: full width, main area */
 .calendar {
   grid-column: 1 / span 2;
@@ -349,6 +364,35 @@ html, body {
 /* Timed events: plain colored text, no block. */
 .calendar-day .event.timed {
   padding: 0.05em 0;
+}
+
+/* Only shown when the backend's daily update check found a newer version;
+   fixed & centered at the very top so it overlays the free space between the
+   clock (top-left) and weather (top-right) without shifting the grid. */
+.update-banner {
+  position: fixed;
+  top: 0.8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  font-size: 0.6em;
+  color: var(--fg-dim);
+  background: rgba(111, 168, 220, 0.15);
+  border: 1px solid var(--accent);
+  border-radius: 1em;
+  padding: 0.25em 0.9em;
+  z-index: 5;
+}
+
+.update-banner::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.5em;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
 }
 
 .status-bar {

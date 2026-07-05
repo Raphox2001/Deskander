@@ -19,6 +19,13 @@ class DisplayCache:
         self._calendar_updated_at: Optional[str] = None
         self._weather: Optional[dict] = None
         self._weather_updated_at: Optional[str] = None
+        self._update_available: bool = False
+        self._update_info: Optional[dict] = None
+
+    def set_update_status(self, available: bool, info: Optional[dict]) -> None:
+        with self._lock:
+            self._update_available = available
+            self._update_info = info
 
     def set_calendar(self, snapshot: dict) -> None:
         with self._lock:
@@ -41,6 +48,8 @@ class DisplayCache:
                 "calendar_weeks": snapshot.get("calendar_weeks", []),
                 "show_week_numbers": snapshot.get("show_week_numbers", True),
                 "weather": self._weather,
+                "update_available": self._update_available,
+                "update_info": self._update_info,
             }
 
 

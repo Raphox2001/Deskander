@@ -152,7 +152,6 @@ async def update_weather(
     settings.weather.refresh_minutes = refresh_minutes
     _store(request).save(settings)
     _scheduler(request).reschedule_weather(refresh_minutes)
-    _scheduler(request).refresh_weather_now()
     return RedirectResponse("/admin", status_code=303)
 
 

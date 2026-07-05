@@ -13,6 +13,51 @@ const TIMELINE_DEFAULT_START_HOUR = 7;
 const TIMELINE_DEFAULT_END_HOUR = 23;
 const TIMELINE_LANE_HEIGHT_EM = 2.1;
 
+// Small line icons per Open-Meteo weather-code group (the backend maps each
+// WMO code to one of these keys). viewBox 0 0 24 24, drawn in currentColor so
+// they inherit the muted forecast text color and stay visually minimal.
+const WEATHER_ICON_PATHS = {
+  sun:
+    '<circle cx="12" cy="12" r="4.2"/>' +
+    '<line x1="12" y1="2.5" x2="12" y2="4.8"/><line x1="12" y1="19.2" x2="12" y2="21.5"/>' +
+    '<line x1="2.5" y1="12" x2="4.8" y2="12"/><line x1="19.2" y1="12" x2="21.5" y2="12"/>' +
+    '<line x1="5.2" y1="5.2" x2="6.8" y2="6.8"/><line x1="17.2" y1="17.2" x2="18.8" y2="18.8"/>' +
+    '<line x1="18.8" y1="5.2" x2="17.2" y2="6.8"/><line x1="6.8" y1="17.2" x2="5.2" y2="18.8"/>',
+  "cloud-sun":
+    '<circle cx="8" cy="7.5" r="3"/>' +
+    '<line x1="8" y1="1.6" x2="8" y2="3"/><line x1="2.6" y1="7.5" x2="4" y2="7.5"/>' +
+    '<line x1="4" y1="3.5" x2="5" y2="4.5"/><line x1="12" y1="3.5" x2="11" y2="4.5"/>' +
+    '<path fill="var(--bg)" d="M17 20H8.5a3.5 3.5 0 0 1-.4-6.98 4.6 4.6 0 0 1 8.86 1.05A3.2 3.2 0 0 1 17 20z"/>',
+  cloud:
+    '<path d="M17.5 19H7a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.55 1.25A3.5 3.5 0 0 1 17.5 19z"/>',
+  fog:
+    '<path d="M17.5 15H7a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.55 1.25A3.5 3.5 0 0 1 17.5 15z"/>' +
+    '<line x1="5" y1="19" x2="15" y2="19"/><line x1="9" y1="22" x2="19" y2="22"/>',
+  drizzle:
+    '<path d="M18 15.6A4.5 4.5 0 0 0 16.5 7h-1.1A6 6 0 1 0 5 13.5"/>' +
+    '<line x1="9" y1="17" x2="8" y2="19"/><line x1="13" y1="17" x2="12" y2="19"/><line x1="17" y1="17" x2="16" y2="19"/>',
+  rain:
+    '<path d="M18 15.6A4.5 4.5 0 0 0 16.5 7h-1.1A6 6 0 1 0 5 13.5"/>' +
+    '<line x1="9" y1="16.5" x2="7.5" y2="20.5"/><line x1="13" y1="16.5" x2="11.5" y2="20.5"/><line x1="17" y1="16.5" x2="15.5" y2="20.5"/>',
+  snow:
+    '<path d="M18 15.6A4.5 4.5 0 0 0 16.5 7h-1.1A6 6 0 1 0 5 13.5"/>' +
+    '<line x1="8.5" y1="18" x2="8.51" y2="18"/><line x1="12" y1="20" x2="12.01" y2="20"/>' +
+    '<line x1="15.5" y1="18" x2="15.51" y2="18"/><line x1="12" y1="16.5" x2="12.01" y2="16.5"/>',
+  thunderstorm:
+    '<path d="M18 13.6A4.5 4.5 0 0 0 16.5 5h-1.1A6 6 0 1 0 5 11.5"/>' +
+    '<polyline points="12 12 9.5 16 13 16 10.5 21"/>',
+};
+
+function weatherIconSvg(iconKey) {
+  const paths = WEATHER_ICON_PATHS[iconKey] || WEATHER_ICON_PATHS.cloud;
+  return (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    paths +
+    "</svg>"
+  );
+}
+
 function formatTime(isoString) {
   const d = new Date(isoString);
   return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
@@ -254,8 +299,14 @@ function renderWeather(weather) {
     const temps = document.createElement("div");
     temps.textContent = `${Math.round(day.temperature_max)}°/${Math.round(day.temperature_min)}°`;
 
+    const icon = document.createElement("div");
+    icon.className = "day-icon";
+    icon.innerHTML = weatherIconSvg(day.icon);
+    icon.title = day.description || "";
+
     dayEl.appendChild(label);
     dayEl.appendChild(temps);
+    dayEl.appendChild(icon);
     forecastEl.appendChild(dayEl);
   }
 }
@@ -439,6 +490,18 @@ function renderCalendar(weeks, showWeekNumbers) {
   }
 }
 
+function renderUpdateBanner(data) {
+  const el = document.getElementById("update-banner");
+  if (data.update_available) {
+    el.textContent = "Update verfügbar";
+    // Base CSS hides the banner (display:none), so setting "" would fall back
+    // to that - use an explicit value to actually reveal it.
+    el.style.display = "inline-block";
+  } else {
+    el.style.display = "none";
+  }
+}
+
 function renderStatus(data) {
   const el = document.getElementById("status-bar");
   const calTime = data.calendar_updated_at
@@ -484,6 +547,7 @@ async function refresh() {
     renderTimeline(timed);
     renderWeather(data.weather);
     renderCalendar(data.calendar_weeks, data.show_week_numbers);
+    renderUpdateBanner(data);
     renderStatus(data);
   } catch (err) {
     console.error("Konnte /display/data nicht laden:", err);

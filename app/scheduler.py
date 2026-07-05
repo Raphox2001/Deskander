@@ -11,16 +11,23 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.cache import display_cache
 from app.calendar_service import build_snapshot, fetch_all_events
 from app.settings_store import SettingsStore
+from app.update_service import check_for_updates
 from app.weather_service import fetch_weather
 
 logger = logging.getLogger(__name__)
 
 CALENDAR_JOB_ID = "refresh_calendar"
 WEATHER_JOB_ID = "refresh_weather"
+UPDATE_JOB_ID = "check_update"
 
 # If a refresh fails (e.g. network not up yet right after boot), retry
 # quickly instead of waiting for the full configured interval to elapse.
 RETRY_SECONDS = 60
+
+# When to look for a new version: a short delay after start (so we don't run
+# git fetch during boot/right after a self-update restart), then once a day.
+UPDATE_CHECK_FIRST_DELAY_MINUTES = 20
+UPDATE_CHECK_INTERVAL_HOURS = 24
 
 
 async def _refresh_calendar(store: SettingsStore) -> None:
@@ -63,10 +70,25 @@ def refresh_weather_job(scheduler: "DashboardScheduler") -> None:
         scheduler._schedule_retry(WEATHER_JOB_ID)
 
 
-class DashboardScheduler:
-    """Owns the two background refresh jobs.
+def check_update_job(scheduler: "DashboardScheduler") -> None:
+    """Look for a newer version and stash the result so the kiosk can show a
+    small "update available" hint. Best-effort: check_for_updates() never
+    raises, and a failed check just leaves the last-known status untouched."""
+    try:
+        result = check_for_updates()
+        if "error" in result:
+            logger.warning("Update check failed: %s", result["error"])
+            return
+        available = not result.get("up_to_date", True)
+        display_cache.set_update_status(available, result if available else None)
+    except Exception:
+        logger.exception("Update check job failed")
 
-    Both jobs re-read the settings store on every run (not once at startup),
+
+class DashboardScheduler:
+    """Owns the background refresh jobs (calendar, weather, update check).
+
+    The calendar/weather jobs re-read the settings store on every run (not once at startup),
     so changing an interval or a calendar source via the admin GUI takes
     effect on the next tick without restarting the process. Interval changes
     additionally call reschedule_*() so they apply immediately rather than
@@ -102,6 +124,15 @@ class DashboardScheduler:
             next_run_time=now,
             misfire_grace_time=None,
         )
+        self._scheduler.add_job(
+            check_update_job,
+            trigger=IntervalTrigger(hours=UPDATE_CHECK_INTERVAL_HOURS),
+            args=[self],
+            id=UPDATE_JOB_ID,
+            replace_existing=True,
+            next_run_time=now + dt.timedelta(minutes=UPDATE_CHECK_FIRST_DELAY_MINUTES),
+            misfire_grace_time=None,
+        )
         self._scheduler.start()
 
     def shutdown(self) -> None:
@@ -119,6 +150,13 @@ class DashboardScheduler:
 
     def reschedule_calendar(self, minutes: int) -> None:
         self._scheduler.reschedule_job(CALENDAR_JOB_ID, trigger=IntervalTrigger(minutes=minutes))
+        # A fresh IntervalTrigger without start_date fires the first time only
+        # after a full interval (see apscheduler IntervalTrigger.__init__), so
+        # rescheduling would otherwise push the next refresh out by the whole
+        # (possibly long) interval. Force an immediate run so a changed interval
+        # takes effect right away instead of leaving a stale display for minutes.
+        self.refresh_calendar_now()
 
     def reschedule_weather(self, minutes: int) -> None:
         self._scheduler.reschedule_job(WEATHER_JOB_ID, trigger=IntervalTrigger(minutes=minutes))
+        self.refresh_weather_now()

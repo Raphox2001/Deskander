@@ -24,7 +24,11 @@ BOOT_ID = str(uuid.uuid4())
 
 @router.get("/")
 async def kiosk_page(request: Request):
-    return templates.TemplateResponse(request, "kiosk.html", {})
+    # Pass the per-process BOOT_ID as an asset version so the kiosk always
+    # fetches fresh CSS/JS after a backend restart (deploy/self-update) instead
+    # of running cached copies - StaticFiles sets no Cache-Control, so browsers
+    # otherwise serve the old files via heuristic caching after location.reload().
+    return templates.TemplateResponse(request, "kiosk.html", {"asset_version": BOOT_ID})
 
 
 @router.get("/display/data")

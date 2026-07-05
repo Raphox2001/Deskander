@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard</title>
-  <link rel="stylesheet" href="/static/css/kiosk.css">
+  <link rel="stylesheet" href="/static/css/kiosk.css?v={{ asset_version }}">
 </head>
 <body>
   <div class="dashboard">
@@ -36,9 +36,11 @@
     </section>
   </div>
 
+  <div id="update-banner" class="update-banner"></div>
+
   <div id="admin-url" class="status-bar status-bar-left"></div>
   <div id="status-bar" class="status-bar status-bar-right"></div>
 
-  <script src="/static/js/kiosk.js"></script>
+  <script src="/static/js/kiosk.js?v={{ asset_version }}"></script>
 </body>
 </html>
