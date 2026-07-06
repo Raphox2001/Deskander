@@ -18,6 +18,28 @@ logger = logging.getLogger(__name__)
 FETCH_TIMEOUT_SECONDS = 10.0
 
 
+class CalendarFetchError(Exception):
+    """Raised by fetch_source_events when a source can't be fetched/parsed.
+
+    fetch_all_events catches these so one broken source can't take the others
+    down, but it counts them so the scheduler knows the refresh was only
+    partial (or a total failure) and can retry soon instead of leaving a stale
+    or empty display until the next full interval.
+    """
+
+
+@dataclass
+class CalendarFetchResult:
+    events: List["CalendarEvent"]
+    attempted: int  # enabled sources we tried to fetch
+    failed: int  # of those, how many could not be fetched/parsed
+
+    @property
+    def total_failure(self) -> bool:
+        """All configured sources failed (e.g. network down right after boot)."""
+        return self.attempted > 0 and self.failed == self.attempted
+
+
 @dataclass
 class CalendarEvent:
     source_id: str
@@ -98,8 +120,12 @@ async def fetch_source_events(
 ) -> List[CalendarEvent]:
     """Fetch, parse and expand one calendar source.
 
-    Never raises - a broken/unreachable source is logged and skipped so it
-    can't take down the other configured sources.
+    Raises CalendarFetchError if the source can't be fetched/parsed (e.g.
+    network not up yet). fetch_all_events catches that to isolate the source
+    from the others *and* to count it as a failure - important so a boot-time
+    network outage triggers a retry instead of silently caching an empty
+    calendar. (A single malformed occurrence is still skipped individually,
+    not treated as a whole-source failure.)
     """
     if not source.enabled:
         return []
@@ -107,9 +133,9 @@ async def fetch_source_events(
         ics_text = await _fetch_ics_text(client, source.url)
         calendar = Calendar.from_ical(ics_text)
         occurrences = recurring_ical_events.of(calendar).between(window_start, window_end)
-    except Exception:
+    except Exception as exc:
         logger.exception("Failed to fetch/parse calendar source %s (%s)", source.name, source.url)
-        return []
+        raise CalendarFetchError(source.name) from exc
 
     events: List[CalendarEvent] = []
     for occurrence in occurrences:
@@ -143,26 +169,43 @@ async def fetch_all_events(
     window_start: dt.date,
     window_end: dt.date,
     client: Optional[httpx.AsyncClient] = None,
-) -> List[CalendarEvent]:
-    tzinfo = ZoneInfo(settings.display.timezone)
+) -> CalendarFetchResult:
+    """Fetch every configured source, isolating failures.
 
-    async def _run(active_client: httpx.AsyncClient) -> List[CalendarEvent]:
+    Uses return_exceptions=True so one unreachable source can't abort the
+    gather; failed sources are counted (not silently dropped) so the caller
+    can tell "no events" apart from "couldn't reach anything" and retry.
+    """
+    tzinfo = ZoneInfo(settings.display.timezone)
+    attempted = sum(1 for source in settings.calendar_sources if source.enabled)
+
+    async def _run(active_client: httpx.AsyncClient) -> tuple[List[CalendarEvent], int]:
         results = await asyncio.gather(
             *(
                 fetch_source_events(active_client, source, window_start, window_end, tzinfo)
                 for source in settings.calendar_sources
-            )
+            ),
+            return_exceptions=True,
         )
-        return [event for source_events in results for event in source_events]
+        events: List[CalendarEvent] = []
+        failed = 0
+        for result in results:
+            if isinstance(result, CalendarFetchError):
+                failed += 1
+            elif isinstance(result, BaseException):
+                raise result  # unexpected error - don't swallow programming bugs
+            else:
+                events.extend(result)
+        return events, failed
 
     if client is not None:
-        events = await _run(client)
+        events, failed = await _run(client)
     else:
         async with httpx.AsyncClient() as owned_client:
-            events = await _run(owned_client)
+            events, failed = await _run(owned_client)
 
     events.sort(key=lambda e: e.start)
-    return events
+    return CalendarFetchResult(events=events, attempted=attempted, failed=failed)
 
 
 def build_snapshot(

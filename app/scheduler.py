@@ -30,43 +30,79 @@ UPDATE_CHECK_FIRST_DELAY_MINUTES = 20
 UPDATE_CHECK_INTERVAL_HOURS = 24
 
 
-async def _refresh_calendar(store: SettingsStore) -> None:
+async def _refresh_calendar(store: SettingsStore) -> bool:
+    """Refresh the cached calendar snapshot. Returns False if the refresh
+    should be retried soon (any source failed to fetch). On a *total* failure
+    (nothing reachable, e.g. network not up yet after boot) the cache is left
+    untouched so the display keeps its last-known-good data instead of blanking."""
     settings = store.load()
     today = dt.date.today()
     window_start = today - dt.timedelta(days=today.weekday())  # Monday of current week
     window_end = today + dt.timedelta(weeks=settings.display.calendar_weeks_shown)
-    events = await fetch_all_events(settings, window_start, window_end)
+    result = await fetch_all_events(settings, window_start, window_end)
+
+    if result.total_failure:
+        logger.warning(
+            "Calendar refresh reached no source (%d/%d failed); keeping last data",
+            result.failed,
+            result.attempted,
+        )
+        return False
+
     snapshot = build_snapshot(
-        events,
+        result.events,
         today,
         settings.display.calendar_weeks_shown,
         settings.display.agenda_days_ahead,
         settings.display.show_week_numbers,
     )
     display_cache.set_calendar(snapshot)
+    logger.info(
+        "Calendar refreshed: %d events (%d/%d sources failed)",
+        len(result.events),
+        result.failed,
+        result.attempted,
+    )
+    return result.failed == 0
 
 
 def refresh_calendar_job(scheduler: "DashboardScheduler") -> None:
     try:
-        asyncio.run(_refresh_calendar(scheduler._store))
+        ok = asyncio.run(_refresh_calendar(scheduler._store))
     except Exception:
-        logger.exception("Calendar refresh job failed, retrying in %ss", RETRY_SECONDS)
+        logger.exception("Calendar refresh job crashed, retrying in %ss", RETRY_SECONDS)
+        scheduler._schedule_retry(CALENDAR_JOB_ID)
+        return
+    if not ok:
+        # A swallowed fetch failure (network down at boot) is exactly what left
+        # the display empty until the next full interval - retry quickly instead.
+        logger.info("Calendar refresh incomplete, retrying in %ss", RETRY_SECONDS)
         scheduler._schedule_retry(CALENDAR_JOB_ID)
 
 
-async def _refresh_weather(store: SettingsStore) -> None:
+async def _refresh_weather(store: SettingsStore) -> bool:
+    """Refresh cached weather. Returns False (without touching the cache) when
+    Open-Meteo couldn't be reached, so the job knows to retry soon."""
     settings = store.load()
     async with httpx.AsyncClient() as client:
         weather = await fetch_weather(client, settings.weather, settings.display.timezone)
-    if weather is not None:
-        display_cache.set_weather(weather)
+    if weather is None:
+        return False
+    display_cache.set_weather(weather)
+    return True
 
 
 def refresh_weather_job(scheduler: "DashboardScheduler") -> None:
     try:
-        asyncio.run(_refresh_weather(scheduler._store))
+        ok = asyncio.run(_refresh_weather(scheduler._store))
     except Exception:
-        logger.exception("Weather refresh job failed, retrying in %ss", RETRY_SECONDS)
+        logger.exception("Weather refresh job crashed, retrying in %ss", RETRY_SECONDS)
+        scheduler._schedule_retry(WEATHER_JOB_ID)
+        return
+    if not ok:
+        # fetch_weather swallows the network error and returns None; without
+        # this the display stayed weatherless until the next full interval.
+        logger.info("Weather refresh returned no data, retrying in %ss", RETRY_SECONDS)
         scheduler._schedule_retry(WEATHER_JOB_ID)
 
 

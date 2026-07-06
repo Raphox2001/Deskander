@@ -6,8 +6,13 @@ import httpx
 import pytest
 import respx
 
-from app.calendar_service import build_snapshot, fetch_source_events
-from app.models import CalendarSource
+from app.calendar_service import (
+    CalendarFetchError,
+    build_snapshot,
+    fetch_all_events,
+    fetch_source_events,
+)
+from app.models import CalendarSource, DisplaySettings, Settings
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_events.ics"
 BERLIN = ZoneInfo("Europe/Berlin")
@@ -58,15 +63,53 @@ async def test_disabled_source_is_skipped():
 
 
 @pytest.mark.asyncio
-async def test_broken_source_is_isolated_and_returns_empty_list():
+async def test_broken_source_raises_fetch_error():
     source = CalendarSource(name="Broken", url="https://example.com/broken.ics")
     with respx.mock:
         respx.get("https://example.com/broken.ics").mock(return_value=httpx.Response(500))
         async with httpx.AsyncClient() as client:
-            events = await fetch_source_events(
-                client, source, dt.date(2026, 7, 1), dt.date(2026, 7, 31), BERLIN
-            )
-    assert events == []
+            with pytest.raises(CalendarFetchError):
+                await fetch_source_events(
+                    client, source, dt.date(2026, 7, 1), dt.date(2026, 7, 31), BERLIN
+                )
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_events_isolates_broken_source_and_counts_failure():
+    ics_bytes = FIXTURE_PATH.read_bytes()
+    settings = Settings(
+        calendar_sources=[
+            CalendarSource(name="Good", url="https://example.com/good.ics"),
+            CalendarSource(name="Broken", url="https://example.com/broken.ics"),
+        ],
+        display=DisplaySettings(timezone="Europe/Berlin"),
+    )
+    with respx.mock:
+        respx.get("https://example.com/good.ics").mock(
+            return_value=httpx.Response(200, content=ics_bytes)
+        )
+        respx.get("https://example.com/broken.ics").mock(return_value=httpx.Response(500))
+        result = await fetch_all_events(settings, dt.date(2026, 7, 1), dt.date(2026, 7, 31))
+
+    # The good source's events still come through; the broken one is counted.
+    assert result.attempted == 2
+    assert result.failed == 1
+    assert result.total_failure is False
+    assert len(result.events) > 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_events_total_failure_when_all_sources_down():
+    settings = Settings(
+        calendar_sources=[CalendarSource(name="Broken", url="https://example.com/broken.ics")],
+        display=DisplaySettings(timezone="Europe/Berlin"),
+    )
+    with respx.mock:
+        respx.get("https://example.com/broken.ics").mock(return_value=httpx.Response(500))
+        result = await fetch_all_events(settings, dt.date(2026, 7, 1), dt.date(2026, 7, 31))
+
+    assert result.total_failure is True
+    assert result.events == []
 
 
 @pytest.mark.asyncio
