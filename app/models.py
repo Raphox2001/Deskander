@@ -30,8 +30,22 @@ class DisplaySettings(BaseModel):
     show_admin_url: bool = True
 
 
+class ReminderSettings(BaseModel):
+    enabled: bool = False
+    lead_minutes: int = 30  # first show this many minutes before the event start
+    visible_seconds: int = 60  # how long each pop-up stays on screen
+    repeat: bool = True  # re-show in intervals until the event starts
+    repeat_interval_minutes: int = 5  # gap between repeated pop-ups
+    travel_enabled: bool = False
+    home_latitude: float = 52.52
+    home_longitude: float = 13.405
+    home_place_name: str = ""
+    travel_refresh_minutes: int = 5  # how often the travel time is recomputed
+
+
 class Settings(BaseModel):
     calendar_sources: List[CalendarSource] = Field(default_factory=list)
     calendar_refresh_minutes: int = 15
     weather: WeatherSettings = Field(default_factory=WeatherSettings)
     display: DisplaySettings = Field(default_factory=DisplaySettings)
+    reminder: ReminderSettings = Field(default_factory=ReminderSettings)

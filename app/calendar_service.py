@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
@@ -50,6 +50,8 @@ class CalendarEvent:
     start: dt.datetime
     end: dt.datetime
     all_day: bool
+    description: str = ""
+    attendees: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -61,6 +63,8 @@ class CalendarEvent:
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "all_day": self.all_day,
+            "description": self.description,
+            "attendees": self.attendees,
         }
 
 
@@ -87,6 +91,35 @@ def _resolve_start_end(
         end = dt.datetime.combine(last_day, dt.time(23, 59, 59), tzinfo=tzinfo)
         return start, end, True
     return _localize(raw_start, tzinfo), _localize(raw_end, tzinfo), False
+
+
+def _parse_attendees(occurrence) -> List[str]:
+    """Turn an event's ATTENDEE property into a list of display names.
+
+    icalendar returns a single vCalAddress or a list of them; each carries the
+    address (e.g. "mailto:john@example.com") plus optional params, of which CN
+    (common name) is the human-readable label. Prefer CN, else the bare address
+    without the "mailto:" prefix. Best-effort: never raises."""
+    raw = occurrence.get("ATTENDEE")
+    if raw is None:
+        return []
+    items = raw if isinstance(raw, list) else [raw]
+    names: List[str] = []
+    for item in items:
+        try:
+            params = getattr(item, "params", {}) or {}
+            cn = params.get("CN")
+            if cn:
+                label = str(cn).strip()
+            else:
+                label = str(item).strip()
+                if label.lower().startswith("mailto:"):
+                    label = label[len("mailto:"):]
+            if label:
+                names.append(label)
+        except Exception:
+            continue
+    return names
 
 
 async def _fetch_ics_text(client: httpx.AsyncClient, url: str) -> str:
@@ -146,6 +179,8 @@ async def fetch_source_events(
             start, end, all_day = _resolve_start_end(raw_start, raw_end, tzinfo)
             title = str(occurrence.get("SUMMARY", "(ohne Titel)"))
             location = str(occurrence.get("LOCATION", "") or "")
+            description = str(occurrence.get("DESCRIPTION", "") or "")
+            attendees = _parse_attendees(occurrence)
         except Exception:
             logger.exception("Skipping malformed occurrence in source %s", source.name)
             continue
@@ -159,6 +194,8 @@ async def fetch_source_events(
                 start=start,
                 end=end,
                 all_day=all_day,
+                description=description,
+                attendees=attendees,
             )
         )
     return events

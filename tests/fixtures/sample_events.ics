@@ -7,6 +7,9 @@ DTSTART:20260706T140000Z
 DTEND:20260706T153000Z
 SUMMARY:Einzeltermin
 LOCATION:Buero
+DESCRIPTION:Bitte Unterlagen mitbringen
+ATTENDEE;CN=Max Mustermann:mailto:max@example.com
+ATTENDEE:mailto:erika@example.com
 END:VEVENT
 BEGIN:VEVENT
 UID:recur1

@@ -51,6 +51,39 @@ def test_missing_nested_fields_are_merged_with_defaults(tmp_path):
     assert settings.display.timezone == "Europe/Berlin"
 
 
+def test_old_settings_without_reminder_gets_merged_defaults(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    # An older settings.json predating the reminder feature: no "reminder" key.
+    settings_path.write_text(
+        json.dumps({"calendar_sources": [], "calendar_refresh_minutes": 7}),
+        encoding="utf-8",
+    )
+    store = SettingsStore(settings_path=settings_path, defaults_path=tmp_path / "missing.json")
+
+    settings = store.load()
+    assert settings.calendar_refresh_minutes == 7
+    assert settings.reminder.enabled is False
+    assert settings.reminder.lead_minutes == 30
+    assert settings.reminder.repeat is True
+
+
+def test_partial_reminder_block_is_deep_merged(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    # Only some reminder fields present -> the rest come from defaults (deep
+    # merge), rather than the whole block being dropped.
+    settings_path.write_text(
+        json.dumps({"calendar_sources": [], "reminder": {"enabled": True, "lead_minutes": 45}}),
+        encoding="utf-8",
+    )
+    store = SettingsStore(settings_path=settings_path, defaults_path=tmp_path / "missing.json")
+
+    settings = store.load()
+    assert settings.reminder.enabled is True
+    assert settings.reminder.lead_minutes == 45
+    assert settings.reminder.visible_seconds == 60
+    assert settings.reminder.repeat_interval_minutes == 5
+
+
 def test_atomic_write_leaves_no_tmp_file_behind(tmp_path):
     settings_path = tmp_path / "settings.json"
     store = SettingsStore(settings_path=settings_path, defaults_path=tmp_path / "missing.json")

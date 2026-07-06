@@ -133,6 +133,13 @@ body {
   font-style: italic;
 }
 
+.hint {
+  color: #777;
+  max-width: 55ch;
+  margin: 0 0 1.2em;
+  line-height: 1.4;
+}
+
 .inline-form {
   margin-top: 1em;
   display: flex;

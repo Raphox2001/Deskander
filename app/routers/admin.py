@@ -188,6 +188,36 @@ async def update_display(
     return RedirectResponse("/admin", status_code=303)
 
 
+@router.get("/reminder")
+async def reminder_form(request: Request):
+    settings = _store(request).load()
+    return templates.TemplateResponse(
+        request, "admin/reminder_form.html", {"reminder": settings.reminder}
+    )
+
+
+@router.post("/reminder")
+async def update_reminder(
+    request: Request,
+    enabled: Optional[str] = Form(None),
+    lead_minutes: int = Form(...),
+    visible_seconds: int = Form(...),
+    repeat: Optional[str] = Form(None),
+    repeat_interval_minutes: int = Form(...),
+):
+    # No scheduler job needed: the kiosk reads these knobs from /display/data on
+    # its next poll and drives the pop-up timing itself. Travel-time fields stay
+    # at their defaults for now (feature ships without them).
+    settings = _store(request).load()
+    settings.reminder.enabled = bool(enabled)
+    settings.reminder.lead_minutes = lead_minutes
+    settings.reminder.visible_seconds = visible_seconds
+    settings.reminder.repeat = bool(repeat)
+    settings.reminder.repeat_interval_minutes = repeat_interval_minutes
+    _store(request).save(settings)
+    return RedirectResponse("/admin", status_code=303)
+
+
 @router.post("/api/refresh/calendar")
 async def api_refresh_calendar(request: Request):
     _scheduler(request).refresh_calendar_now()

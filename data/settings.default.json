@@ -12,5 +12,17 @@
     "agenda_days_ahead": 1,
     "timezone": "Europe/Berlin"
   },
+  "reminder": {
+    "enabled": false,
+    "lead_minutes": 30,
+    "visible_seconds": 60,
+    "repeat": true,
+    "repeat_interval_minutes": 5,
+    "travel_enabled": false,
+    "home_latitude": 52.52,
+    "home_longitude": 13.405,
+    "home_place_name": "",
+    "travel_refresh_minutes": 5
+  },
   "calendar_sources": []
 }

@@ -52,7 +52,7 @@ class SettingsStore:
     def _merge_defaults(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         defaults = self._load_defaults()
         merged = {**defaults, **raw}
-        for key in ("weather", "display"):
+        for key in ("weather", "display", "reminder"):
             merged[key] = {**defaults.get(key, {}), **raw.get(key, {})}
         return merged
 

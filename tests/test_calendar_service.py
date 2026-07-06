@@ -53,6 +53,30 @@ async def test_fetch_source_events_resolves_start_and_end():
 
 
 @pytest.mark.asyncio
+async def test_fetch_source_events_parses_description_and_attendees():
+    ics_bytes = FIXTURE_PATH.read_bytes()
+    source = CalendarSource(name="Test", url="https://example.com/test.ics")
+
+    with respx.mock:
+        respx.get("https://example.com/test.ics").mock(
+            return_value=httpx.Response(200, content=ics_bytes)
+        )
+        async with httpx.AsyncClient() as client:
+            events = await fetch_source_events(
+                client, source, dt.date(2026, 7, 1), dt.date(2026, 7, 31), BERLIN
+            )
+
+    single = {e.title: e for e in events}["Einzeltermin"]
+    assert single.description == "Bitte Unterlagen mitbringen"
+    # CN param is preferred as display name; a plain mailto: attendee falls back
+    # to the bare address.
+    assert single.attendees == ["Max Mustermann", "erika@example.com"]
+    # Both fields survive the round-trip into the /display/data payload shape.
+    assert single.to_dict()["description"] == "Bitte Unterlagen mitbringen"
+    assert single.to_dict()["attendees"] == ["Max Mustermann", "erika@example.com"]
+
+
+@pytest.mark.asyncio
 async def test_disabled_source_is_skipped():
     source = CalendarSource(name="Test", url="https://example.com/test.ics", enabled=False)
     async with httpx.AsyncClient() as client:

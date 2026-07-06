@@ -409,3 +409,111 @@ html, body {
 .status-bar-right {
   right: 0.6vw;
 }
+
+/* Full-screen reminder pop-up: dim backdrop + a large centered card that
+   overlays everything (z-index above the update banner at 5). Shown/hidden via
+   the [hidden] attribute from kiosk.js, which drives the timing. */
+.reminder-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+/* [hidden] alone would be overridden by the display:flex above (author style
+   beats the UA hidden rule), so re-assert it explicitly. */
+.reminder-popup[hidden] {
+  display: none;
+}
+
+.reminder-card {
+  --reminder-accent: var(--accent);
+  width: min(72vw, 62em);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding: 1.8em 2em;
+  background: #0f1620;
+  border: 1px solid #26313d;
+  border-top: 0.45em solid var(--reminder-accent);
+  border-radius: 0.6em;
+  box-shadow: 0 1.5em 4em rgba(0, 0, 0, 0.6);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.reminder-countdown {
+  align-self: flex-start;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--reminder-accent);
+  padding: 0.15em 0.8em;
+  border-radius: 1em;
+  letter-spacing: 0.02em;
+}
+
+.reminder-source {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--reminder-accent);
+}
+
+.reminder-title {
+  margin: 0;
+  font-size: 2.2em;
+  line-height: 1.1;
+  color: var(--fg-dim);
+}
+
+.reminder-time {
+  font-size: 1.3em;
+  color: var(--fg);
+}
+
+.reminder-detail {
+  font-size: 1.05em;
+  line-height: 1.35;
+  color: var(--fg);
+}
+
+/* Small muted caption above each detail value (value text comes from JS via
+   textContent, so labels live here to keep JS free of untrusted innerHTML). */
+.reminder-detail::before {
+  display: block;
+  font-size: 0.62em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-faint);
+  margin-bottom: 0.05em;
+}
+
+.reminder-location::before {
+  content: "Ort";
+}
+
+.reminder-attendees::before {
+  content: "Teilnehmer";
+}
+
+.reminder-notes::before {
+  content: "Notizen";
+}
+
+.reminder-notes {
+  white-space: pre-wrap;
+  overflow-y: auto;
+  max-height: 28vh;
+}
+
+.reminder-travel {
+  margin-top: 0.2em;
+  font-size: 1.1em;
+  color: var(--fg-dim);
+}

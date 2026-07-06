@@ -521,6 +521,89 @@ function renderStatus(data) {
   }
 }
 
+// Latest agenda + reminder config from /display/data. The pop-up timing is
+// driven client-side (from the 1s tick below), so it only needs the data here.
+let reminderState = { agenda: [], config: null };
+
+function pickReminderEvent(agenda, config, now) {
+  // The next timed event that has entered its lead window but hasn't started.
+  if (!config || !config.enabled) return null;
+  const leadMs = config.lead_minutes * 60000;
+  let best = null;
+  for (const event of agenda || []) {
+    if (event.all_day) continue;
+    const startMs = new Date(event.start).getTime();
+    if (Number.isNaN(startMs)) continue;
+    if (now >= startMs) continue; // already started
+    if (now < startMs - leadMs) continue; // lead window not reached yet
+    if (best === null || startMs < best.startMs) {
+      best = { event, startMs };
+    }
+  }
+  return best;
+}
+
+function reminderVisible(startMs, config, now) {
+  // "Repeat until start": on for visible_seconds, off until the next interval,
+  // repeated from (start - lead) up to start. Without repeat: a single showing
+  // at the start of the lead window.
+  const windowStart = startMs - config.lead_minutes * 60000;
+  if (now < windowStart || now >= startMs) return false;
+  const visibleMs = config.visible_seconds * 1000;
+  if (!config.repeat) {
+    return now < windowStart + visibleMs;
+  }
+  const intervalMs = Math.max(config.repeat_interval_minutes * 60000, 1000);
+  return (now - windowStart) % intervalMs < visibleMs;
+}
+
+function renderReminderCard(event, startMs, now) {
+  const card = document.getElementById("reminder-card");
+  card.style.setProperty("--reminder-accent", event.color || "#6fa8dc");
+
+  const mins = Math.max(0, Math.round((startMs - now) / 60000));
+  const countdownEl = document.getElementById("reminder-countdown");
+  countdownEl.textContent =
+    mins <= 0 ? "Jetzt" : mins === 1 ? "in 1 Minute" : `in ${mins} Minuten`;
+
+  const sourceEl = document.getElementById("reminder-source");
+  sourceEl.textContent = event.source_name || "";
+  sourceEl.style.display = event.source_name ? "" : "none";
+
+  document.getElementById("reminder-title").textContent = event.title || "(ohne Titel)";
+  document.getElementById("reminder-time").textContent = formatTimeRange(event);
+
+  const setDetail = (id, value) => {
+    const el = document.getElementById(id);
+    if (value) {
+      el.textContent = value;
+      el.style.display = "";
+    } else {
+      el.style.display = "none";
+    }
+  };
+  setDetail("reminder-location", event.location);
+  setDetail("reminder-attendees", (event.attendees || []).join(", "));
+  setDetail("reminder-notes", event.description);
+
+  // Travel block: not populated yet (ships without travel time). Rendered only
+  // once event.travel is present, so this is forward-compatible with no cost.
+  const travelEl = document.getElementById("reminder-travel");
+  travelEl.style.display = "none";
+}
+
+function updateReminderPopup() {
+  const popup = document.getElementById("reminder-popup");
+  const now = Date.now();
+  const picked = pickReminderEvent(reminderState.agenda, reminderState.config, now);
+  if (!picked || !reminderVisible(picked.startMs, reminderState.config, now)) {
+    if (!popup.hidden) popup.hidden = true;
+    return;
+  }
+  renderReminderCard(picked.event, picked.startMs, now);
+  popup.hidden = false;
+}
+
 let knownBackendBootId = null;
 
 async function refresh() {
@@ -549,6 +632,10 @@ async function refresh() {
     renderCalendar(data.calendar_weeks, data.show_week_numbers);
     renderUpdateBanner(data);
     renderStatus(data);
+
+    reminderState.agenda = data.agenda || [];
+    reminderState.config = data.reminder || null;
+    updateReminderPopup();
   } catch (err) {
     console.error("Konnte /display/data nicht laden:", err);
   }
@@ -559,6 +646,7 @@ updateNowLine();
 setInterval(() => {
   updateClock();
   updateNowLine();
+  updateReminderPopup();
 }, 1000);
 
 refresh();

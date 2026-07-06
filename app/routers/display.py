@@ -38,5 +38,16 @@ async def display_data(request: Request):
     if settings.display.show_admin_url:
         port = request.url.port or 8000
         data["admin_url"] = f"http://{get_lan_ip()}:{port}/admin"
+    # The reminder pop-up timing lives entirely in the kiosk JS (it already
+    # ticks every second), so it just needs the config knobs here. Travel-time
+    # fields are intentionally omitted for now - the feature ships without them.
+    reminder = settings.reminder
+    data["reminder"] = {
+        "enabled": reminder.enabled,
+        "lead_minutes": reminder.lead_minutes,
+        "visible_seconds": reminder.visible_seconds,
+        "repeat": reminder.repeat,
+        "repeat_interval_minutes": reminder.repeat_interval_minutes,
+    }
     data["backend_boot_id"] = BOOT_ID
     return JSONResponse(data)

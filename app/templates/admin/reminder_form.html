@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block content %}
+
+<h2>Termin-Erinnerung (Popup)</h2>
+
+<p class="hint">
+  Ein großes Popup erscheint vor einem Termin zentral auf dem Bildschirm und zeigt
+  alle Termininfos (Name, Notizen, Start/Ende, Ort, Teilnehmer). Fahrzeit-Anzeige folgt
+  in einem späteren Schritt.
+</p>
+
+<form method="post" class="form">
+  <label class="checkbox">
+    <input type="checkbox" name="enabled" {% if reminder.enabled %}checked{% endif %}>
+    Erinnerungs-Popup aktivieren
+  </label>
+  <label>Wie lange vorher einblenden (Minuten)
+    <input type="number" name="lead_minutes" min="1" max="240" required value="{{ reminder.lead_minutes }}">
+  </label>
+  <label>Wie lange sichtbar (Sekunden)
+    <input type="number" name="visible_seconds" min="5" max="3600" required value="{{ reminder.visible_seconds }}">
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" name="repeat" {% if reminder.repeat %}checked{% endif %}>
+    Wiederholen bis Terminstart
+  </label>
+  <label>Abstand der Wiederholungen (Minuten)
+    <input type="number" name="repeat_interval_minutes" min="1" max="120" required value="{{ reminder.repeat_interval_minutes }}">
+  </label>
+  <div class="form-actions">
+    <button type="submit">Speichern</button>
+    <a href="/admin">Abbrechen</a>
+  </div>
+</form>
+{% endblock %}

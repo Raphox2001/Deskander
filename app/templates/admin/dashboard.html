@@ -59,6 +59,18 @@
   <p>{{ settings.display.calendar_weeks_shown }} Wochen im Kalender, Agenda für {{ settings.display.agenda_days_ahead }} Tag(e), Zeitzone {{ settings.display.timezone }}, Kalenderwochen {{ "an" if settings.display.show_week_numbers else "aus" }}</p>
 </section>
 
+<section class="card">
+  <div class="card-header">
+    <h2>Termin-Erinnerung</h2>
+    <a class="button" href="/admin/reminder">Bearbeiten</a>
+  </div>
+  {% if settings.reminder.enabled %}
+  <p>Popup {{ settings.reminder.lead_minutes }} Min. vor dem Termin, {{ settings.reminder.visible_seconds }} Sek. sichtbar{% if settings.reminder.repeat %}, wiederholt alle {{ settings.reminder.repeat_interval_minutes }} Min. bis Start{% endif %}.</p>
+  {% else %}
+  <p>Deaktiviert.</p>
+  {% endif %}
+</section>
+
 <p id="refresh-status" class="status-message"></p>
 
 <script>
